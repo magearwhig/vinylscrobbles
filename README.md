@@ -486,7 +486,13 @@ pip install -e .
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+The MIT License is particularly suitable for this project as it:
+- Allows commercial use and modification
+- Requires only that the license and copyright notice be preserved
+- Provides no warranty (appropriate for AI-generated code)
+- Is compatible with most other open-source licenses
 
 ## 🙏 Acknowledgments
 
