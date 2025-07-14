@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration - Vinyl Recognition System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-cogs me-2"></i>System Configuration
+                </h5>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-light" id="load-config">
+                        <i class="fas fa-sync-alt me-1"></i>Reload
+                    </button>
+                    <button type="button" class="btn btn-outline-light" id="save-config">
+                        <i class="fas fa-save me-1"></i>Save
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="config-content">
+                    <div class="text-center">
+                        <i class="fas fa-spinner fa-spin me-2"></i>Loading configuration...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-key me-2"></i>API Keys Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="secrets-status">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-spinner fa-spin me-2"></i>Checking...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Configuration Help
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="help-section">
+                    <h6>Audio Settings</h6>
+                    <p><strong>device_name:</strong> USB audio device name (e.g., "USB Audio CODEC")</p>
+                    <p><strong>sample_rate:</strong> Audio sample rate in Hz (44100 or 48000)</p>
+                    <p><strong>silence_threshold:</strong> Volume threshold for silence detection (0.01-0.1)</p>
+                </div>
+                
+                <div class="help-section">
+                    <h6>Recognition</h6>
+                    <p><strong>providers.order:</strong> Priority order of recognition services</p>
+                    <p><strong>min_confidence:</strong> Minimum confidence for accepting results (0.0-1.0)</p>
+                </div>
+                
+                <div class="help-section">
+                    <h6>Scrobbling</h6>
+                    <p><strong>min_play_time:</strong> Minimum seconds to qualify for scrobble (30)</p>
+                    <p><strong>max_queue_size:</strong> Maximum pending scrobbles (1000)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentConfig = {};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Event listeners
+    document.getElementById('load-config').addEventListener('click', loadConfiguration);
+    document.getElementById('save-config').addEventListener('click', saveConfiguration);
+    
+    // Initial load
+    loadConfiguration();
+});
+
+function loadConfiguration() {
+    fetch('/api/config')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById('config-content').innerHTML = 
+                    `<div class="alert alert-danger">${data.error}</div>`;
+                return;
+            }
+            
+            currentConfig = data.config;
+            displayConfiguration(data.config);
+            displaySecretsStatus(data.secrets);
+        })
+        .catch(error => {
+            document.getElementById('config-content').innerHTML = 
+                `<div class="alert alert-danger">Failed to load configuration: ${error}</div>`;
+        });
+}
+
+function displayConfiguration(config) {
+    const container = document.getElementById('config-content');
+    let html = '';
+    
+    // Audio configuration
+    html += createConfigSection('Audio Settings', config.audio, [
+        { key: 'device_name', label: 'Device Name', type: 'text' },
+        { key: 'sample_rate', label: 'Sample Rate', type: 'number' },
+        { key: 'chunk_size', label: 'Chunk Size', type: 'number' },
+        { key: 'channels', label: 'Channels', type: 'number' },
+        { key: 'silence_threshold', label: 'Silence Threshold', type: 'number', step: '0.001' },
+        { key: 'silence_duration', label: 'Silence Duration (s)', type: 'number', step: '0.1' },
+        { key: 'recording_duration', label: 'Recording Duration (s)', type: 'number' }
+    ]);
+    
+    // Recognition configuration
+    html += createConfigSection('Recognition Settings', config.recognition, [
+        { key: 'min_confidence', label: 'Minimum Confidence', type: 'number', step: '0.01' },
+        { key: 'rate_limit_delay', label: 'Rate Limit Delay (s)', type: 'number', step: '0.1' }
+    ]);
+    
+    // Provider order
+    if (config.recognition && config.recognition.providers) {
+        html += `
+            <div class="config-section">
+                <h6>Provider Order</h6>
+                <div class="mb-3">
+                    <label class="form-label">Recognition Provider Priority:</label>
+                    <input type="text" class="form-control" id="provider-order" 
+                           value="${config.recognition.providers.order.join(', ')}" 
+                           placeholder="audd, shazam">
+                    <div class="form-text">Comma-separated list of providers in priority order</div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Scrobbling configuration
+    if (config.scrobbling && config.scrobbling.lastfm) {
+        html += createConfigSection('Last.fm Scrobbling', config.scrobbling.lastfm, [
+            { key: 'min_play_time', label: 'Min Play Time (s)', type: 'number' },
+            { key: 'max_queue_size', label: 'Max Queue Size', type: 'number' },
+            { key: 'retry_interval', label: 'Retry Interval (s)', type: 'number' },
+            { key: 'max_retries', label: 'Max Retries', type: 'number' }
+        ]);
+    }
+    
+    // Web interface configuration
+    if (config.web_interface) {
+        html += createConfigSection('Web Interface', config.web_interface, [
+            { key: 'host', label: 'Host', type: 'text' },
+            { key: 'port', label: 'Port', type: 'number' },
+            { key: 'debug', label: 'Debug Mode', type: 'checkbox' },
+            { key: 'update_interval', label: 'Update Interval (s)', type: 'number' },
+            { key: 'enable_config_editing', label: 'Enable Config Editing', type: 'checkbox' }
+        ]);
+    }
+    
+    container.innerHTML = html;
+}
+
+function createConfigSection(title, sectionConfig, fields) {
+    let html = `
+        <div class="config-section">
+            <h6>${title}</h6>
+    `;
+    
+    fields.forEach(field => {
+        const value = sectionConfig ? sectionConfig[field.key] : '';
+        const fieldId = `config-${field.key.replace(/\./g, '-')}`;
+        
+        if (field.type === 'checkbox') {
+            html += `
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="${fieldId}" 
+                           ${value ? 'checked' : ''} data-config-key="${field.key}">
+                    <label class="form-check-label" for="${fieldId}">${field.label}</label>
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="mb-3">
+                    <label for="${fieldId}" class="form-label">${field.label}</label>
+                    <input type="${field.type}" class="form-control" id="${fieldId}" 
+                           value="${value}" data-config-key="${field.key}"
+                           ${field.step ? `step="${field.step}"` : ''}>
+                </div>
+            `;
+        }
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+function displaySecretsStatus(secrets) {
+    const container = document.getElementById('secrets-status');
+    let html = '';
+    
+    for (const [key, info] of Object.entries(secrets)) {
+        const statusClass = info.present ? 'text-success' : (info.required ? 'text-danger' : 'text-warning');
+        const statusIcon = info.present ? 'fa-check-circle' : 'fa-times-circle';
+        
+        html += `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="small">${info.description}</span>
+                <i class="fas ${statusIcon} ${statusClass}"></i>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+}
+
+function saveConfiguration() {
+    const saveButton = document.getElementById('save-config');
+    const originalText = saveButton.innerHTML;
+    
+    // Show loading state
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+    saveButton.disabled = true;
+    
+    try {
+        // Collect configuration from form
+        const updatedConfig = collectConfigurationFromForm();
+        
+        // Send to server
+        fetch('/api/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updatedConfig)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Configuration saved successfully', 'success');
+                currentConfig = { ...currentConfig, ...updatedConfig };
+            } else {
+                showNotification(data.error || 'Failed to save configuration', 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Error saving configuration: ' + error, 'error');
+        })
+        .finally(() => {
+            // Restore button state
+            saveButton.innerHTML = originalText;
+            saveButton.disabled = false;
+        });
+        
+    } catch (error) {
+        showNotification('Error collecting configuration: ' + error, 'error');
+        saveButton.innerHTML = originalText;
+        saveButton.disabled = false;
+    }
+}
+
+function collectConfigurationFromForm() {
+    const config = JSON.parse(JSON.stringify(currentConfig)); // Deep clone
+    
+    // Collect all form inputs
+    const inputs = document.querySelectorAll('[data-config-key]');
+    
+    inputs.forEach(input => {
+        const keyPath = input.dataset.configKey;
+        const value = input.type === 'checkbox' ? input.checked : 
+                     input.type === 'number' ? parseFloat(input.value) : 
+                     input.value;
+        
+        // Set value in nested object
+        setNestedValue(config, keyPath, value);
+    });
+    
+    // Handle provider order specially
+    const providerOrderInput = document.getElementById('provider-order');
+    if (providerOrderInput) {
+        const providers = providerOrderInput.value.split(',').map(p => p.trim()).filter(p => p);
+        if (config.recognition && config.recognition.providers) {
+            config.recognition.providers.order = providers;
+        }
+    }
+    
+    return config;
+}
+
+function setNestedValue(obj, path, value) {
+    const keys = path.split('.');
+    let current = obj;
+    
+    for (let i = 0; i < keys.length - 1; i++) {
+        if (!(keys[i] in current)) {
+            current[keys[i]] = {};
+        }
+        current = current[keys[i]];
+    }
+    
+    current[keys[keys.length - 1]] = value;
+}
+</script>
+{% endblock %}

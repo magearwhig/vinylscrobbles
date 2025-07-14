@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Logs - Vinyl Recognition System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-alt me-2"></i>System Logs
+                </h5>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-light" id="refresh-logs">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                    <button type="button" class="btn btn-outline-light" id="auto-refresh" data-active="false">
+                        <i class="fas fa-play me-1"></i>Auto Refresh
+                    </button>
+                    <select class="form-select form-select-sm ms-2" id="log-lines" style="width: auto;">
+                        <option value="50">50 lines</option>
+                        <option value="100" selected>100 lines</option>
+                        <option value="250">250 lines</option>
+                        <option value="500">500 lines</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="log-container" id="log-content">
+                    <div class="text-center">
+                        <i class="fas fa-spinner fa-spin me-2"></i>Loading logs...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let autoRefreshInterval;
+let autoRefreshActive = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Event listeners
+    document.getElementById('refresh-logs').addEventListener('click', loadLogs);
+    document.getElementById('auto-refresh').addEventListener('click', toggleAutoRefresh);
+    document.getElementById('log-lines').addEventListener('change', loadLogs);
+    
+    // Initial load
+    loadLogs();
+});
+
+function loadLogs() {
+    const lines = document.getElementById('log-lines').value;
+    const logContent = document.getElementById('log-content');
+    
+    // Show loading state
+    if (!autoRefreshActive) {
+        logContent.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>Loading logs...</div>';
+    }
+    
+    fetch(`/api/logs?lines=${lines}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.logs) {
+                displayLogs(data.logs);
+            } else if (data.error) {
+                logContent.innerHTML = `<div class="text-danger">Error: ${data.error}</div>`;
+            }
+        })
+        .catch(error => {
+            logContent.innerHTML = `<div class="text-danger">Failed to load logs: ${error}</div>`;
+        });
+}
+
+function displayLogs(logs) {
+    const logContent = document.getElementById('log-content');
+    
+    if (!logs || logs.trim() === '') {
+        logContent.innerHTML = '<div class="text-muted">No logs available</div>';
+        return;
+    }
+    
+    // Format logs with syntax highlighting
+    const formattedLogs = formatLogContent(logs);
+    logContent.innerHTML = `<pre>${formattedLogs}</pre>`;
+    
+    // Auto-scroll to bottom
+    logContent.scrollTop = logContent.scrollHeight;
+}
+
+function formatLogContent(logs) {
+    return logs
+        .replace(/ERROR/g, '<span class="text-danger fw-bold">ERROR</span>')
+        .replace(/WARNING/g, '<span class="text-warning fw-bold">WARNING</span>')
+        .replace(/INFO/g, '<span class="text-info fw-bold">INFO</span>')
+        .replace(/DEBUG/g, '<span class="text-muted">DEBUG</span>')
+        .replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/g, '<span class="text-primary">$1</span>')
+        .replace(/(vinyl_recognizer|audio_processor|music_recognizer|lastfm_scrobbler|duplicate_detector)/g, 
+                '<span class="text-success">$1</span>');
+}
+
+function toggleAutoRefresh() {
+    const button = document.getElementById('auto-refresh');
+    const icon = button.querySelector('i');
+    const text = button.querySelector('i').nextSibling;
+    
+    if (autoRefreshActive) {
+        // Stop auto refresh
+        clearInterval(autoRefreshInterval);
+        autoRefreshActive = false;
+        button.setAttribute('data-active', 'false');
+        icon.className = 'fas fa-play me-1';
+        button.innerHTML = '<i class="fas fa-play me-1"></i>Auto Refresh';
+        showNotification('Auto refresh stopped', 'info');
+    } else {
+        // Start auto refresh
+        autoRefreshInterval = setInterval(loadLogs, 5000); // Refresh every 5 seconds
+        autoRefreshActive = true;
+        button.setAttribute('data-active', 'true');
+        icon.className = 'fas fa-pause me-1';
+        button.innerHTML = '<i class="fas fa-pause me-1"></i>Stop Auto';
+        showNotification('Auto refresh started (5s interval)', 'info');
+    }
+}
+
+// Stop auto refresh when page is hidden
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden && autoRefreshActive) {
+        clearInterval(autoRefreshInterval);
+    } else if (!document.hidden && autoRefreshActive) {
+        autoRefreshInterval = setInterval(loadLogs, 5000);
+    }
+});
+
+// Clean up on page unload
+window.addEventListener('beforeunload', function() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,44 @@
+[Unit]
+Description=Vinyl Music Recognition Service
+Documentation=https://github.com/magearwhig/vinylscrobbles
+After=network-online.target sound.target
+Wants=network-online.target
+RequiresMountsFor=/opt/vinyl-recognition
+
+[Service]
+Type=simple
+User=pi
+Group=audio
+WorkingDirectory=/opt/vinyl-recognition
+Environment=PATH=/opt/vinyl-recognition/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PYTHONPATH=/opt/vinyl-recognition
+ExecStart=/opt/vinyl-recognition/venv/bin/python /opt/vinyl-recognition/vinyl_recognizer.py
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+StartLimitBurst=3
+StartLimitInterval=60
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/vinyl-recognition/logs /opt/vinyl-recognition/data /opt/vinyl-recognition/config
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# Resource limits
+MemoryMax=512M
+CPUQuota=80%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vinyl-recognition
+
+[Install]
+WantedBy=multi-user.target

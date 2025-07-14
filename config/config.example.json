@@ -1,0 +1,75 @@
+{
+  "audio": {
+    "device_name": "USB Audio CODEC",
+    "sample_rate": 44100,
+    "chunk_size": 4096,
+    "channels": 2,
+    "format": "int16",
+    "silence_threshold": 0.01,
+    "silence_duration": 2.0,
+    "recording_duration": 30.0,
+    "max_recording_duration": 120.0
+  },
+  "recognition": {
+    "providers": {
+      "order": ["audd", "shazam"],
+      "audd": {
+        "enabled": true,
+        "api_url": "https://api.audd.io/",
+        "timeout": 30,
+        "max_retries": 3
+      },
+      "shazam": {
+        "enabled": true,
+        "timeout": 30,
+        "max_retries": 3
+      }
+    },
+    "min_confidence": 0.6,
+    "rate_limit_delay": 1.0
+  },
+  "scrobbling": {
+    "lastfm": {
+      "enabled": true,
+      "api_url": "https://ws.audioscrobbler.com/2.0/",
+      "min_play_time": 30,
+      "max_queue_size": 1000,
+      "retry_interval": 300,
+      "max_retries": 5
+    }
+  },
+  "duplicate_detection": {
+    "enabled": true,
+    "time_window": 900,
+    "similarity_threshold": 0.9,
+    "cache_size": 1000
+  },
+  "web_interface": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": false,
+    "secret_key_env": "FLASK_SECRET_KEY",
+    "update_interval": 5,
+    "enable_config_editing": true
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "logs/vinyl_recognizer.log",
+    "max_bytes": 10485760,
+    "backup_count": 5,
+    "console_output": true
+  },
+  "database": {
+    "path": "data/vinyl_recognizer.db",
+    "backup_interval": 86400,
+    "cleanup_interval": 2592000
+  },
+  "system": {
+    "watchdog_enabled": true,
+    "health_check_interval": 60,
+    "auto_restart_on_error": true,
+    "max_memory_usage": 512,
+    "max_cpu_usage": 80
+  }
+}
