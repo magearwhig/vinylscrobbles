@@ -13,8 +13,8 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_socketio import SocketIO, emit
 import logging
 
-from .config_manager import get_config
-from .database import DatabaseManager
+from config_manager import get_config
+from database import DatabaseManager
 
 logger = logging.getLogger(__name__)
 

@@ -13,9 +13,9 @@ import asyncio
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
 
-from .config_manager import get_config
-from .database import DatabaseManager, ScrobbleEntry
-from .music_recognizer import RecognitionResult
+from config_manager import get_config
+from database import DatabaseManager, ScrobbleEntry
+from music_recognizer import RecognitionResult
 
 logger = logging.getLogger(__name__)
 

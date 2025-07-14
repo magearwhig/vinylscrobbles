@@ -22,6 +22,35 @@ A comprehensive automated vinyl music recognition system for Raspberry Pi that c
 - **Computer**: Raspberry Pi 4 (4GB RAM minimum)
 - **Cables**: RCA Y-splitters and RCA-to-TRS adapters
 
+## 💻 System Requirements
+
+### Operating System
+- **Linux**: Ubuntu 20.04+, Debian 11+, Raspberry Pi OS
+- **macOS**: 10.15+ (with Homebrew for dependencies)
+- **Windows**: 10+ (with additional setup for audio libraries)
+
+### Required System Libraries
+The system requires audio processing libraries to capture and process vinyl audio:
+
+**Linux (Ubuntu/Debian/Raspberry Pi):**
+```bash
+sudo apt-get install portaudio19-dev libasound2-dev
+```
+
+**macOS:**
+```bash
+brew install portaudio
+```
+
+**Windows:**
+- Install Visual Studio Build Tools
+- Or use pre-built PyAudio wheels
+
+### Python Requirements
+- **Python**: 3.8+ (3.9+ recommended)
+- **pip**: Latest version
+- **Virtual Environment**: Recommended for isolation
+
 ### Compatible Alternatives
 - Any turntable → preamp → USB audio interface → Raspberry Pi setup
 - USB audio interfaces: Behringer UMC22, Focusrite Scarlett Solo, PreSonus AudioBox USB 96
@@ -99,6 +128,25 @@ If you prefer manual installation or need to customize the setup:
    sudo apt install -y python3-pip python3-venv python3-dev \
        libasound2-dev portaudio19-dev git nginx sqlite3 \
        alsa-utils alsa-tools build-essential
+   ```
+
+   **Note:** PyAudio requires system-level audio libraries to be installed. If you encounter PyAudio installation errors, install the required dependencies first:
+
+   **On macOS:**
+   ```bash
+   brew install portaudio
+   ```
+
+   **On Ubuntu/Debian:**
+   ```bash
+   sudo apt-get install portaudio19-dev python3-pyaudio
+   ```
+
+   **On Windows:**
+   ```bash
+   # Use pipwin for easier installation
+   pip install pipwin
+   pipwin install pyaudio
    ```
 
 2. **Audio Configuration**:
@@ -454,17 +502,129 @@ To add a new recognition provider:
 2. Add provider to configuration
 3. Update provider initialization in `MusicRecognizer`
 
-### Testing
+## 🧪 Testing
+
+The project includes comprehensive unit tests with a target of **90% code coverage**. All tests are designed to run without external dependencies or API calls.
+
+### Running Tests
+
 ```bash
-# Run unit tests
-python -m pytest tests/
+# Install test dependencies (required first time)
+pip install -r requirements.txt
 
-# Test specific component
-python -m pytest tests/test_audio.py
+# Option 1: Use the test runner script (recommended)
+python run_tests.py --coverage
 
-# Integration test
-python -m pytest tests/test_integration.py
+# Option 2: Run pytest directly
+python -m pytest
+
+# Option 3: If pytest is in PATH
+pytest
+
+# Or use the test runner script
+python run_tests.py --coverage
+
+# Run tests with verbose output
+pytest -v
+
+# Run specific test file
+pytest tests/test_config_manager.py
+
+# Run specific test class
+pytest tests/test_config_manager.py::TestConfigManager
+
+# Run specific test method
+pytest tests/test_config_manager.py::TestConfigManager::test_get_config_value
+
+# Run tests by marker
+pytest -m unit          # Unit tests only
+pytest -m integration   # Integration tests only
+pytest -m "not slow"    # Skip slow tests
 ```
+
+### Test Coverage
+
+```bash
+# Run tests with coverage report
+pytest --cov=src --cov-report=term-missing
+
+# Generate HTML coverage report
+pytest --cov=src --cov-report=html:htmlcov
+
+# Generate XML coverage report (for CI/CD)
+pytest --cov=src --cov-report=xml
+
+# Check coverage threshold (fails if < 90%)
+pytest --cov=src --cov-fail-under=90
+```
+
+### Test Structure
+
+```
+tests/
+├── conftest.py                 # Pytest fixtures and configuration
+├── test_config_manager.py      # Configuration management tests
+├── test_database.py            # Database operations tests
+├── test_duplicate_detector.py  # Duplicate detection tests
+├── test_integration.py         # Integration tests
+└── __init__.py                 # Test package
+```
+
+### Test Categories
+
+- **Unit Tests**: Test individual components in isolation
+- **Integration Tests**: Test component interactions
+- **Performance Tests**: Test system performance under load
+- **Error Handling Tests**: Test error conditions and edge cases
+
+### Test Features
+
+- **Mocked Dependencies**: All external APIs are mocked
+- **Temporary Files**: Tests use temporary databases and config files
+- **Isolated Environment**: Each test runs in isolation
+- **Comprehensive Coverage**: Tests cover success, failure, and edge cases
+- **Performance Monitoring**: Tests include performance assertions
+
+### Continuous Integration
+
+The test suite is designed to run in CI/CD environments:
+
+```yaml
+# Example GitHub Actions workflow
+- name: Run Tests
+  run: |
+    pip install -r requirements.txt
+    pytest --cov=src --cov-report=xml --cov-fail-under=90
+```
+
+### Test Data
+
+Tests use realistic but safe test data:
+- Sample configuration files
+- Mock API responses
+- Temporary databases
+- Simulated audio files
+
+### Debugging Tests
+
+```bash
+# Run tests with debug output
+pytest -s
+
+# Run single test with debugger
+pytest tests/test_config_manager.py::TestConfigManager::test_get_config_value -s
+
+# Show test durations
+pytest --durations=10
+
+# Generate test report
+pytest --html=test_report.html --self-contained-html
+
+# Quick test run (skip slow tests)
+python run_tests.py --quick
+
+# Run with HTML coverage report
+python run_tests.py --html --verbose
 
 ## 🤝 Contributing
 
@@ -525,3 +685,37 @@ We welcome feature requests! Please describe:
 ---
 
 **🎵 Happy vinyl listening and automatic scrobbling! 🎵**
+
+### Troubleshooting
+
+**"pytest: command not found"**
+```bash
+# Install dependencies first
+pip install -r requirements.txt
+
+# Then use one of these methods:
+python -m pytest                    # Run pytest as module
+python run_tests.py --coverage      # Use test runner script
+```
+
+**"No module named 'pytest'"**
+```bash
+# Install pytest and other test dependencies
+pip install pytest pytest-cov pytest-mock pytest-html
+
+# Or install all requirements
+pip install -r requirements.txt
+```
+
+**Virtual Environment Issues**
+```bash
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run tests
+python run_tests.py --coverage
+```

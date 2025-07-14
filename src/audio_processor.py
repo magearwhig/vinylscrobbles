@@ -16,7 +16,7 @@ from pathlib import Path
 import tempfile
 import os
 
-from .config_manager import get_config
+from config_manager import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +31,22 @@ class AudioProcessor:
         Args:
             on_track_detected: Callback function when a track is detected
         """
+        # Defensive: ensure all attributes exist even if init fails
+        self._audio_thread = None
+        self.stream = None
+        self.audio = None
+        self.input_device_index = None
+        self.is_recording = False
+        self.is_running = False
+        self.current_recording = []
+        self.silence_start_time = None
+        self.music_start_time = None
+        self.last_track_end_time = 0
+        self._lock = threading.Lock()
+        self.on_track_detected = on_track_detected
+        # Now proceed with normal initialization
         self.config = get_config()
         self.audio_config = self.config.get_audio_config()
-        
-        self.on_track_detected = on_track_detected
         
         # Audio settings
         self.device_name = self.audio_config.get('device_name', 'USB Audio CODEC')
@@ -63,7 +75,6 @@ class AudioProcessor:
         
         # PyAudio instance
         self.audio = None
-        self.stream = None
         self.input_device_index = None
         
         self._initialize_audio()

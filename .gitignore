@@ -43,6 +43,16 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.pytest_cache/
+coverage.xml
+*.cover
+.hypothesis/
+
 # Virtual environments
 .env
 .venv

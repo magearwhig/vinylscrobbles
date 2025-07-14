@@ -24,7 +24,7 @@ except ImportError:
     SHAZAM_AVAILABLE = False
     logger.warning("shazamio not available. Install with: pip install shazamio")
 
-from .config_manager import get_config
+from config_manager import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ class AudDProvider(BaseRecognitionProvider):
             
             # Make the API request
             async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout)) as session:
-                async with session.post(self.api_url, data=data, data=files) as response:
+                async with session.post(self.api_url, data=data, files=files) as response:
                     if response.status == 200:
                         result_data = await response.json()
                         return self._parse_audd_response(result_data)

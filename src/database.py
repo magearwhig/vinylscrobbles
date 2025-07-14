@@ -15,7 +15,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 
-from .config_manager import get_config
+from config_manager import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -540,8 +540,10 @@ class DatabaseManager:
             cursor = conn.execute('DELETE FROM system_stats WHERE timestamp < ?', (cutoff_timestamp,))
             cleanup_counts['system_stats'] = cursor.rowcount
             
-            # Clean up expired duplicates
-            cleanup_counts['duplicate_cache'] = self.cleanup_expired_duplicates()
+            # Clean up expired duplicates (do it directly here to avoid nested connections)
+            current_time = int(time.time())
+            cursor = conn.execute('DELETE FROM duplicate_cache WHERE expires_at <= ?', (current_time,))
+            cleanup_counts['duplicate_cache'] = cursor.rowcount
             
             conn.commit()
         

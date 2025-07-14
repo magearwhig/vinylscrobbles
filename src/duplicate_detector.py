@@ -8,13 +8,13 @@ and checking them against a time-windowed cache.
 import hashlib
 import time
 import logging
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 from dataclasses import dataclass
 import difflib
 
-from .config_manager import get_config
-from .database import DatabaseManager, DuplicateEntry
-from .music_recognizer import RecognitionResult
+from config_manager import get_config
+from database import DatabaseManager, DuplicateEntry
+from music_recognizer import RecognitionResult
 
 logger = logging.getLogger(__name__)
 
@@ -352,7 +352,7 @@ class DuplicateDetector:
         Returns:
             DuplicateCheck result
         """
-        from .music_recognizer import RecognitionResult
+        from music_recognizer import RecognitionResult
         
         # Create a test recognition result
         test_result = RecognitionResult(
